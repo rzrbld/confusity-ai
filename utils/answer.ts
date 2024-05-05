@@ -1,24 +1,26 @@
-import { OpenAIModel } from "@/types";
 import { createParser, ParsedEvent, ReconnectInterval } from "eventsource-parser";
+import { config } from '../utils/config';
+
 
 export const OpenAIStream = async (prompt: string, apiKey: string) => {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetch(config.OpenAIEndpoint, {
+    // You are a helpful assistant that accurately answers the user's queries based on the given text.
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`
+      Authorization: `Bearer ${config.OpenAIapiKey}`
     },
     method: "POST",
     body: JSON.stringify({
-      model: OpenAIModel.DAVINCI_TURBO,
+      model: config.OpenAIModelName,
       messages: [
         { role: "system", content: "You are a helpful assistant that accurately answers the user's queries based on the given text." },
         { role: "user", content: prompt }
       ],
-      max_tokens: 120,
-      temperature: 0.0,
+      max_tokens: config.OpenAITokens,
+      temperature: config.OpenAITemp,
       stream: true
     })
   });
@@ -40,7 +42,11 @@ export const OpenAIStream = async (prompt: string, apiKey: string) => {
 
           try {
             const json = JSON.parse(data);
-            const text = json.choices[0].delta.content;
+            let text = json.choices[0].delta.content;
+
+            if(text==="null" || text===null || text == null){
+              text=" "
+            }
             const queue = encoder.encode(text);
             controller.enqueue(queue);
           } catch (e) {

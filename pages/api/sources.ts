@@ -4,10 +4,82 @@ import * as cheerio from "cheerio";
 import { JSDOM } from "jsdom";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { cleanSourceText } from "../../utils/sources";
+import { config } from '../../utils/config';
+
+// console.log("process.env.CONFLUENCE_URL >>>",config.confluenseURL)
 
 type Data = {
   sources: Source[];
 };
+
+interface Result {
+  content: {
+      id: string;
+      type: string;
+      status: string;
+      title: string;
+      restrictions: {};
+      _links: {
+          webui: string;
+          tinyui: string;
+          self: string;
+      };
+      _expandable: {
+          container: string;
+          metadata: string;
+          extensions: string;
+          operations: string;
+          children: string;
+          history: string;
+          ancestors: string;
+          body: string;
+          version: string;
+          descendants: string;
+          space: string;
+      };
+  };
+  title: string;
+  excerpt: string;
+  url: string;
+  resultGlobalContainer: {
+      title: string;
+      displayUrl: string;
+  };
+  entityType: string;
+  iconCssClass: string;
+  lastModified: string;
+  friendlyLastModified: string;
+  timestamp: number;
+}
+
+interface SearchResult {
+  results: Result[];
+  start: number;
+  limit: number;
+  size: number;
+  totalSize: number;
+  cqlQuery: string;
+  searchDuration: number;
+  _links: {
+      base: string;
+      context: string;
+  };
+}
+
+function extractUrlsFromResults(json: SearchResult): string[] {
+  const urls: string[] = [];
+
+  json.results.forEach((result) => {
+      urls.push(config.confluenseURL+result.url);
+  });
+
+  return urls;
+}
+
+
+function parseStringToSearchResult(jsonString: string): SearchResult {
+  return JSON.parse(jsonString) as SearchResult;
+}
 
 const searchHandler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
   try {
@@ -17,42 +89,42 @@ const searchHandler = async (req: NextApiRequest, res: NextApiResponse<Data>) =>
     };
 
     const sourceCount = 4;
-
     // GET LINKS
-    const response = await fetch(`https://www.google.com/search?q=${query}`);
-    const html = await response.text();
-    const $ = cheerio.load(html);
-    const linkTags = $("a");
-
-    let links: string[] = [];
-
-    linkTags.each((i, link) => {
-      const href = $(link).attr("href");
-
-      if (href && href.startsWith("/url?q=")) {
-        const cleanedHref = href.replace("/url?q=", "").split("&")[0];
-
-        if (!links.includes(cleanedHref)) {
-          links.push(cleanedHref);
+    // `${confluenseURL}/rest/quicknav/1/search?query=${query}`
+    const fetchUrl = `${config.confluenseURL}/rest/api/search?cql=siteSearch ~ "${encodeURIComponent(query)}" AND type in ("space","user","com.atlassian.confluence.extra.team-calendars:calendar-content-type","attachment","page","com.atlassian.confluence.extra.team-calendars:space-calendars-view-content-type","blogpost")&start=0&limit=4&excerpt=highlight&expand=space.icon&includeArchivedSpaces=false`;
+    const fetchOptions: RequestInit = {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${config.confluenseToken}`
         }
-      }
-    });
+    };
 
-    const filteredLinks = links.filter((link, idx) => {
-      const domain = new URL(link).hostname;
+    console.log("Confluence fetch url and options >>>", fetchUrl, fetchOptions)
+    const response = await fetch(fetchUrl, fetchOptions);
+    const html = await response.text();
 
-      const excludeList = ["google", "facebook", "twitter", "instagram", "youtube", "tiktok"];
-      if (excludeList.some((site) => domain.includes(site))) return false;
+    // console.log("RAW search results >>> ", html)
 
-      return links.findIndex((link) => new URL(link).hostname === domain) === idx;
-    });
+    const jsonBody: SearchResult = parseStringToSearchResult(html);
 
-    const finalLinks = filteredLinks.slice(0, sourceCount);
+    let finalLinks: string[] = [];
+  
+    if(jsonBody!==null){
+      finalLinks = extractUrlsFromResults(jsonBody)
+    }
+
+    // console.log("finalLinks>>>", finalLinks)
 
     // SCRAPE TEXT FROM LINKS
     const sources = (await Promise.all(
       finalLinks.map(async (link) => {
-        const response = await fetch(link);
+        const fetchOptions: RequestInit = {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${config.confluenseToken}`
+            }
+        };
+        const response = await fetch(link, fetchOptions);
         const html = await response.text();
         const dom = new JSDOM(html);
         const doc = dom.window.document;

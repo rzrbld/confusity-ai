@@ -36,6 +36,7 @@ export const Search: FC<SearchProps> = ({ onSearch, onAnswerUpdate, onDone }) =>
       },
       body: JSON.stringify({ query })
     });
+    // console.log(query)
 
     if (!response.ok) {
       setLoading(false);
@@ -123,7 +124,7 @@ export const Search: FC<SearchProps> = ({ onSearch, onAnswerUpdate, onDone }) =>
     if (CLARITY_KEY) {
       setApiKey(CLARITY_KEY);
     } else {
-      setShowSettings(true);
+      setShowSettings(false);
     }
 
     inputRef.current?.focus();
@@ -140,10 +141,10 @@ export const Search: FC<SearchProps> = ({ onSearch, onAnswerUpdate, onDone }) =>
         <div className="mx-auto flex h-full w-full max-w-[750px] flex-col items-center space-y-6 px-3 pt-32 sm:pt-64">
           <div className="flex items-center">
             <IconBolt size={36} />
-            <div className="ml-1 text-center text-4xl">Clarity</div>
+            <div className="ml-1 text-center text-4xl">Confusity AI</div>
           </div>
 
-          {apiKey.length === 51 ? (
+          {
             <div className="relative w-full">
               <IconSearch className="text=[#D4D4D8] absolute top-3 w-10 left-1 h-6 rounded-full opacity-50 sm:left-3 sm:top-4 sm:h-8" />
 
@@ -151,7 +152,7 @@ export const Search: FC<SearchProps> = ({ onSearch, onAnswerUpdate, onDone }) =>
                 ref={inputRef}
                 className="h-12 w-full rounded-full border border-zinc-600 bg-[#2A2A31] pr-12 pl-11 focus:border-zinc-800 focus:bg-[#18181C] focus:outline-none focus:ring-2 focus:ring-zinc-800 sm:h-16 sm:py-2 sm:pr-16 sm:pl-16 sm:text-lg"
                 type="text"
-                placeholder="Ask anything..."
+                placeholder="Feel free to ask about anything that is in your confluence"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -164,16 +165,14 @@ export const Search: FC<SearchProps> = ({ onSearch, onAnswerUpdate, onDone }) =>
                 />
               </button>
             </div>
-          ) : (
-            <div className="text-center text-[#D4D4D8]">Please enter your OpenAI API key.</div>
-          )}
+        }
 
-          <button
+          {/* <button
             className="flex cursor-pointer items-center space-x-2 rounded-full border border-zinc-600 px-3 py-1 text-sm text-[#D4D4D8] hover:text-white"
             onClick={() => setShowSettings(!showSettings)}
           >
             {showSettings ? "Hide" : "Show"} Settings
-          </button>
+          </button> */}
 
           {showSettings && (
             <>
@@ -185,7 +184,7 @@ export const Search: FC<SearchProps> = ({ onSearch, onAnswerUpdate, onDone }) =>
                   setApiKey(e.target.value);
 
                   if (e.target.value.length !== 51) {
-                    setShowSettings(true);
+                    setShowSettings(false);
                   }
                 }}
               />

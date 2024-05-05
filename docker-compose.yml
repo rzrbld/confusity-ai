@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  # Node.js application
+  nodejs:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      CONFLUENCE_URL: "https://confluence.mycompany.com"
+      CONFLUENCE_TOKEN: "MY_COMFLUENCE_PAT_PERSONAL_TOKEN"
+      OPENAI_URL: "http://openai_compatible_endpoint.mycompany.com/v1/chat/completions"
+      OPENAI_APIKEY: "sk-blah-blah-blah-blah-blah-blah-blah"
+      OPENAI_MODEL: "Mistral-7B-OpenOrca"
+      OPENAI_TEMP: 0.0
+      OPENAI_TOKENS: 900
+      NODE_TLS_REJECT_UNAUTHORIZED: 0
+      NEXT_TELEMETRY_DISABLED: 1
